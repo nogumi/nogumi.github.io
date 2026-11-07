@@ -138,6 +138,21 @@
     .bars div.zero { background: var(--hairline); }
     .axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 4px; }
 
+    /* Speaking / listening */
+    .center { text-align: center; }
+    .words { line-height: 1.9; font-size: 17px; }
+    .words .hit { color: var(--good); }
+    .words .miss { color: var(--again); text-decoration: underline wavy; text-underline-offset: 3px; }
+    .words .extra { color: var(--muted); text-decoration: line-through; }
+    .heard { font-size: 14px; color: var(--muted); }
+    .score { font-size: 40px; font-weight: 800; line-height: 1.1; margin-bottom: 6px; }
+    .mic { width: 72px; height: 72px; border-radius: 50%; border: 0; background: var(--again); color: #fff; font-size: 30px; cursor: pointer; }
+    .mic:disabled { opacity: .4; cursor: default; }
+    .mic.on { animation: pulse 1s infinite; }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--again) 60%, transparent); } 100% { box-shadow: 0 0 0 18px transparent; } }
+    .blur { filter: blur(7px); cursor: pointer; user-select: none; }
+    .check { display: flex; gap: 8px; align-items: center; font-size: 14px; margin-top: 10px; }
+
     dialog { border: 0; border-radius: var(--radius); padding: 20px; width: min(520px, calc(100% - 32px)); background: var(--canvas); color: var(--ink); margin: auto; }
     dialog::backdrop { background: rgba(0,0,0,.4); }
     .toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 16px; border-radius: 99px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; }
@@ -163,6 +178,8 @@
           <option value="ja-en">日本語 → 英語を思い出す（フラッシュカード）</option>
           <option value="type">日本語 → 英語をタイピング（スペル練習）</option>
           <option value="listen">音声を聞いて英語をタイピング（ディクテーション）</option>
+          <option value="dict">例文を聞いて書き取り（リスニング）</option>
+          <option value="speak">日本語 → 英語を声に出す（スピーキング）</option>
         </select>
         <div style="height:14px"></div>
         <button class="btn primary block" id="start-btn">学習をはじめる</button>
@@ -175,6 +192,53 @@
         <div id="actions"></div>
         <p class="kbd" id="kbd-hint"></p>
         <div style="text-align:center;margin-top:12px"><button class="btn ghost small" id="quit-btn">中断する</button></div>
+      </div>
+    </section>
+
+    <!-- 音読 -->
+    <section id="tab-speak">
+      <div class="card">
+        <label for="sp-src" style="margin-top:0">練習する文</label>
+        <select id="sp-src">
+          <option value="example">例文（ランダム）</option>
+          <option value="learned">学習済みの単語の例文（最近やった順）</option>
+          <option value="weak">苦手な単語の例文</option>
+          <option value="phrase">単語・フレーズだけ</option>
+        </select>
+        <label class="check"><input type="checkbox" id="sp-hide" /> 英文を隠す（まず耳だけで聞く。タップで表示）</label>
+      </div>
+
+      <div class="card center" style="margin-top:12px">
+        <div class="small muted" id="sp-meta"></div>
+        <div id="sp-text" style="font-size:22px;font-weight:700;margin:8px 0;word-break:break-word"></div>
+        <div class="small muted" id="sp-ja"></div>
+        <div class="row" style="justify-content:center;margin-top:14px">
+          <button class="btn" id="sp-play">🔊 お手本</button>
+          <button class="btn" id="sp-slow">🐢 ゆっくり</button>
+        </div>
+      </div>
+
+      <h3>① 発音チェック</h3>
+      <div class="card center">
+        <button class="mic" id="sp-mic" aria-label="発音チェック">🎤</button>
+        <p class="small muted" id="sp-mic-note" style="margin-top:8px"></p>
+        <div id="sp-result" style="margin-top:8px"></div>
+      </div>
+
+      <h3>② 録音して聞き比べ（シャドーイング）</h3>
+      <div class="card center">
+        <div class="row" style="justify-content:center">
+          <button class="btn" id="sp-rec">⏺ 録音</button>
+          <button class="btn" id="sp-mine" disabled>▶ 自分の声</button>
+          <button class="btn" id="sp-play2">▶ お手本</button>
+        </div>
+        <label class="check" style="justify-content:center"><input type="checkbox" id="sp-shadow" /> 録音と同時にお手本を流す（イヤホン推奨）</label>
+        <p class="small muted" style="margin-top:8px">シャドーイング＝お手本を聞きながら少し遅れて影のように追いかけて発音する練習。録音してお手本と聞き比べ、リズム・抑揚・音のつながりの違いを探しましょう。</p>
+      </div>
+
+      <div class="row" style="margin-top:12px">
+        <button class="btn grow" id="sp-prev">← 前へ</button>
+        <button class="btn primary grow" id="sp-next">次へ →</button>
       </div>
     </section>
 
@@ -210,6 +274,8 @@
         <div class="bars" id="bars"></div>
         <div class="axis"><span id="ax-l"></span><span>今日</span></div>
       </div>
+      <h3>直近30日のスピーキング</h3>
+      <div class="card" id="speak-stats"></div>
       <h3>苦手な単語（「もう一度」が多い順）</h3>
       <ul class="list" id="weak-list"></ul>
       <h3>これから7日の復習予定</h3>
@@ -252,6 +318,7 @@
 
   <nav class="tabs">
     <button data-tab="today" class="active">今日</button>
+    <button data-tab="speak">音読</button>
     <button data-tab="words">単語帳</button>
     <button data-tab="stats">記録</button>
     <button data-tab="settings">設定</button>
@@ -412,12 +479,18 @@
       nextCard();
     }
     function endSession(msg) {
+      stopRecognition();
       session = null;
       $('start-panel').hidden = false; $('study-panel').hidden = true;
       if (msg) toast(msg);
       renderToday();
     }
+    const TYPING = ['type', 'listen', 'dict'];
+    // 各モードで「正解」とする英文（例文ディクテーションは例文、それ以外は見出し語）
+    const target = (c, m = session?.mode) => (m === 'dict' && c.example) ? c.example : c.en;
+
     function nextCard() {
+      stopRecognition();
       if (!session.queue.length) return endSession('お疲れさまでした！今日の分は完了です 🎉');
       session.card = session.queue.shift();
       session.revealed = false;
@@ -425,38 +498,48 @@
       $('prog').style.width = `${(session.done / session.total) * 100}%`;
       renderCard();
       const m = session.mode;
-      if (state.settings.autospeak && (m === 'en-ja' || m === 'listen')) speak(session.card.en);
+      if (state.settings.autospeak && ['en-ja', 'listen', 'dict'].includes(m)) speak(target(session.card));
     }
 
     function renderCard() {
       const c = session.card, m = session.mode, f = $('flash'), a = $('actions');
       const tag = isNew(c) ? '<span class="badge new">NEW</span>' : '';
       const speakBtn = `<button class="speak" data-speak aria-label="読み上げ">🔊</button>`;
+      const slowBtn = `<button class="speak" data-slow aria-label="ゆっくり読み上げ">🐢</button>`;
       let front;
       if (m === 'en-ja') front = `<div class="front">${esc(c.en)} ${speakBtn}</div>`;
-      else if (m === 'listen') front = `<div class="muted">音声を聞いて英語を入力 ${speakBtn}</div>`;
+      else if (m === 'listen') front = `<div class="muted">音声を聞いて英語を入力</div><div>${speakBtn}${slowBtn}</div>`;
+      else if (m === 'dict') front = `<div class="muted">${c.example ? '例文を聞いて書き取り' : '音声を聞いて書き取り'}</div><div>${speakBtn}${slowBtn}</div>`;
+      else if (m === 'speak') front = `<div class="muted small">英語で言ってみよう</div><div class="front" style="font-size:26px">${esc(c.ja)}</div>`;
       else front = `<div class="front" style="font-size:26px">${esc(c.ja)}</div>`;
 
       let html = `<div>${tag}</div>${front}`;
       if (session.revealed) {
         html += `<hr style="border:0;border-top:1px solid var(--hairline);margin:6px 0">`;
         if (m === 'en-ja') html += `<div class="back">${esc(c.ja)}</div>`;
+        else if (m === 'dict') html += `<div class="front" style="font-size:20px">${esc(target(c))} ${speakBtn}</div><div class="note">${esc(c.en)} — ${esc(c.ja)}</div>`;
         else html += `<div class="front" style="font-size:28px">${esc(c.en)} ${speakBtn}</div>${m === 'listen' ? `<div class="back">${esc(c.ja)}</div>` : ''}`;
         if (session.typed != null) html += session.typed.html;
-        if (c.example) html += `<div class="example">${esc(c.example)} <button class="speak" data-speak-ex aria-label="例文を読み上げ" style="font-size:15px">🔊</button></div>`;
+        if (c.example && m !== 'dict') html += `<div class="example">${esc(c.example)} <button class="speak" data-speak-ex aria-label="例文を読み上げ" style="font-size:15px">🔊</button></div>`;
         if (c.note) html += `<div class="note">${esc(c.note)}</div>`;
       }
       f.innerHTML = html;
 
-      const typing = m === 'type' || m === 'listen';
       if (!session.revealed) {
-        if (typing) {
-          a.innerHTML = `<div class="row" style="margin-top:12px"><input type="text" id="answer" class="grow" style="width:auto" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="英語で入力"><button class="btn primary" id="check-btn">答え合わせ</button></div>
+        if (TYPING.includes(m)) {
+          const ph = m === 'dict' ? '聞こえた英文を入力' : '英語で入力';
+          a.innerHTML = `<div class="row" style="margin-top:12px"><input type="text" id="answer" class="grow" style="width:auto" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="${ph}"><button class="btn primary" id="check-btn">答え合わせ</button></div>
             <div style="text-align:center;margin-top:8px"><button class="btn ghost small" id="giveup-btn">わからない</button></div>`;
           setTimeout(() => $('answer') && $('answer').focus(), 0);
-          $('kbd-hint').textContent = 'Enter で答え合わせ';
+          $('kbd-hint').textContent = 'Enter で答え合わせ / Ctrl+R で再生';
+        } else if (m === 'speak' && SR) {
+          a.innerHTML = `<div class="center" style="margin-top:14px"><button class="mic" id="mic-btn" aria-label="話す">🎤</button>
+            <p class="heard" id="heard" style="min-height:24px;margin-top:8px"></p>
+            <button class="btn ghost small" id="giveup-btn">わからない（答えを見る）</button></div>`;
+          $('kbd-hint').textContent = 'Space でマイク開始';
         } else {
-          a.innerHTML = `<button class="btn primary block" id="reveal-btn" style="margin-top:12px">答えを見る</button>`;
+          a.innerHTML = (m === 'speak' ? `<p class="small muted center" style="margin-top:10px">このブラウザは音声認識に対応していません（Chrome / Safari 推奨）。声に出してから答えを見て、自己評価してください。</p>` : '')
+            + `<button class="btn primary block" id="reveal-btn" style="margin-top:12px">答えを見る</button>`;
           $('kbd-hint').textContent = 'Space で答えを見る';
         }
       } else {
@@ -469,7 +552,7 @@
     }
 
     function normalize(s) {
-      return s.toLowerCase().replace(/[’‘]/g, "'").replace(/[.,!?;:"]/g, '').replace(/\s+/g, ' ').trim();
+      return String(s).toLowerCase().replace(/[.,!?;:"“”()'’‘]/g, '').replace(/-/g, ' ').replace(/\s+/g, ' ').trim();
     }
     // 文字単位の差分（LCS）で間違い箇所を表示
     function diffHtml(answer, correct) {
@@ -485,22 +568,51 @@
       }
       return out;
     }
+    // 単語単位の差分。target の各語が言えた/書けたか（hit / miss）と、余分な語（extra）を表示
+    function wordDiff(targetText, said) {
+      const split = (s) => String(s).split(/\s+/).map(w => ({ raw: w, n: normalize(w) })).filter(w => w.n);
+      const a = split(targetText), b = split(said);
+      const n = a.length, m = b.length;
+      const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+      for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--)
+        dp[i][j] = a[i].n === b[j].n ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+      let i = 0, j = 0, hits = 0; const out = [];
+      while (i < n || j < m) {
+        if (i < n && j < m && a[i].n === b[j].n) { out.push(`<span class="hit">${esc(a[i].raw)}</span>`); hits++; i++; j++; }
+        else if (i < n && (j >= m || dp[i + 1][j] >= dp[i][j + 1])) { out.push(`<span class="miss">${esc(a[i].raw)}</span>`); i++; }
+        else { out.push(`<span class="extra">${esc(b[j].raw)}</span>`); j++; }
+      }
+      return { html: out.join(' '), score: n ? hits / n : 0 };
+    }
+    const scoreClass = (s) => s >= 1 ? 'ok' : 'ng';
+
     function checkAnswer(giveUp) {
-      const c = session.card;
+      const c = session.card, m = session.mode, t = target(c);
       const input = giveUp ? '' : ($('answer')?.value || '');
-      const ok = !giveUp && normalize(input) === normalize(c.en);
-      let html;
-      if (ok) html = `<div class="result ok">正解！</div>`;
-      else if (giveUp || !input.trim()) html = `<div class="result ng">答えを確認しましょう</div>`;
-      else html = `<div class="result ng">おしい…</div><div class="diff small">あなたの答え: ${diffHtml(normalize(input), normalize(c.en))}</div>`;
-      session.typed = { html, suggest: ok ? 2 : 0 };
+      let html, suggest;
+      if (m === 'dict') {
+        const d = wordDiff(t, input);
+        const ok = !giveUp && d.score === 1;
+        suggest = ok ? 2 : d.score >= 0.7 ? 1 : 0;
+        if (ok) html = `<div class="result ok">完璧！</div>`;
+        else if (giveUp || !input.trim()) html = `<div class="result ng">答えを確認しましょう</div>`;
+        else html = `<div class="result ng">一致 ${Math.round(d.score * 100)}%</div><div class="words small">${d.html}</div><div class="small muted">緑=聞き取れた / 赤=聞き逃した / 灰=余分</div>`;
+      } else {
+        const ok = !giveUp && normalize(input) === normalize(t);
+        suggest = ok ? 2 : 0;
+        if (ok) html = `<div class="result ok">正解！</div>`;
+        else if (giveUp || !input.trim()) html = `<div class="result ng">答えを確認しましょう</div>`;
+        else html = `<div class="result ng">おしい…</div><div class="diff small">あなたの答え: ${diffHtml(normalize(input), normalize(t))}</div>`;
+      }
+      session.typed = { html, suggest };
       session.revealed = true;
       renderCard();
-      speak(c.en);
+      speak(t);
     }
     function reveal() {
+      stopRecognition();
       session.revealed = true; renderCard();
-      if (session.mode === 'ja-en' && state.settings.autospeak) speak(session.card.en);
+      if ((session.mode === 'ja-en' || session.mode === 'speak') && state.settings.autospeak) speak(session.card.en);
     }
     function grade(g) {
       const c = session.card;
@@ -511,7 +623,31 @@
       nextCard();
     }
 
-    // ---------- Speech ----------
+    // スピーキングモード：マイクで話して判定
+    function toggleCardMic() {
+      if (recognizer) { stopRecognition(); return; }
+      const c = session.card;
+      $('mic-btn').classList.add('on');
+      $('heard').textContent = '話してください…';
+      listen(c.en, {
+        onInterim: (t) => { const h = $('heard'); if (h) h.textContent = t; },
+        onDone: (best) => {
+          if (!session || session.card !== c) return;
+          if (!best) { $('mic-btn')?.classList.remove('on'); $('heard').textContent = '聞き取れませんでした。もう一度どうぞ'; return; }
+          logSpoken(best.score);
+          const ok = best.score >= 1;
+          session.typed = {
+            html: `<div class="result ${scoreClass(best.score)}">${ok ? '完璧！' : `一致 ${Math.round(best.score * 100)}%`}</div>
+                   <div class="words">${best.html}</div><div class="heard">聞き取り: “${esc(best.text)}”</div>`,
+            suggest: ok ? 2 : best.score >= 0.6 ? 1 : 0,
+          };
+          session.revealed = true; renderCard(); speak(c.en);
+        },
+        onError: (msg) => { $('mic-btn')?.classList.remove('on'); const h = $('heard'); if (h) h.textContent = msg; },
+      });
+    }
+
+    // ---------- Speech synthesis ----------
     let voices = [];
     function loadVoices() {
       if (!('speechSynthesis' in window)) return;
@@ -520,16 +656,138 @@
       sel.innerHTML = `<option value="">自動（英語）</option>` + voices.map(v => `<option value="${esc(v.name)}">${esc(v.name)} (${esc(v.lang)})</option>`).join('');
       sel.value = state.settings.voice;
     }
-    function speak(text) {
+    function speak(text, rate) {
       if (!('speechSynthesis' in window) || !text) return;
       speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
       u.lang = 'en-US';
-      u.rate = Number(state.settings.rate) || 0.9;
+      u.rate = rate || Number(state.settings.rate) || 0.9;
       const v = voices.find(v => v.name === state.settings.voice);
       if (v) { u.voice = v; u.lang = v.lang; }
       speechSynthesis.speak(u);
     }
+
+    // ---------- Speech recognition ----------
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognizer = null;
+    function stopRecognition() {
+      if (recognizer) { try { recognizer.abort(); } catch {} recognizer = null; }
+      document.querySelectorAll('.mic.on').forEach(b => b.classList.remove('on'));
+    }
+    // 認識候補（最大5つ）のうち、お手本に最も近いものを採用する
+    function listen(targetText, { onInterim, onDone, onError }) {
+      if (!SR) { onError('このブラウザは音声認識に対応していません（Chrome / Safari 推奨）'); return; }
+      if ('speechSynthesis' in window) speechSynthesis.cancel();
+      const r = new SR();
+      r.lang = 'en-US'; r.interimResults = true; r.maxAlternatives = 5; r.continuous = false;
+      let finals = null, errored = false;
+      r.onresult = (e) => {
+        const results = [...e.results];
+        if (results.every(res => res.isFinal)) {
+          const k = Math.max(...results.map(res => res.length));
+          finals = Array.from({ length: k }, (_, i) => results.map(res => (res[i] || res[0]).transcript).join(' ').trim());
+        } else onInterim(results.map(res => res[0].transcript).join(' '));
+      };
+      r.onerror = (e) => {
+        errored = true;
+        const msg = { 'not-allowed': 'マイクの使用が許可されていません', 'no-speech': '声が聞こえませんでした。もう一度どうぞ', 'audio-capture': 'マイクが見つかりません', 'network': '音声認識サービスに接続できませんでした' }[e.error];
+        if (e.error !== 'aborted') onError(msg || `音声認識エラー: ${e.error}`);
+      };
+      r.onend = () => {
+        const mine = recognizer === r; if (mine) recognizer = null;
+        document.querySelectorAll('.mic.on').forEach(b => b.classList.remove('on'));
+        if (errored || !mine) return;
+        if (!finals || !finals.length) return onDone(null);
+        const best = finals.map(text => ({ text, ...wordDiff(targetText, text) })).sort((x, y) => y.score - x.score)[0];
+        onDone(best);
+      };
+      recognizer = r;
+      try { r.start(); } catch { recognizer = null; onError('マイクを開始できませんでした'); }
+    }
+    function logSpoken(score) {
+      const l = logToday();
+      l.spoken = (l.spoken || 0) + 1; l.spokenScore = (l.spokenScore || 0) + score;
+      save();
+    }
+
+    // ---------- 音読（発音チェック・シャドーイング） ----------
+    const sp = { list: [], i: 0, recUrl: null, media: null };
+    function spPool() {
+      const src = $('sp-src').value;
+      let cards = state.cards.slice();
+      if (src === 'weak') cards = cards.filter(c => c.againCount > 0).sort((a, b) => b.againCount - a.againCount);
+      else if (src === 'learned') cards = cards.filter(c => !isNew(c)).sort((a, b) => (b.last || 0) - (a.last || 0));
+      const items = cards.map(c => {
+        if (src === 'phrase') return { text: c.en, sub: c.ja };
+        return c.example ? { text: c.example, sub: `${c.en} — ${c.ja}` } : null;
+      }).filter(Boolean);
+      if (src === 'example' || src === 'phrase') for (let i = items.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [items[i], items[j]] = [items[j], items[i]]; }
+      return items;
+    }
+    function spReset() { sp.list = spPool(); sp.i = 0; spRender(); }
+    function spRender() {
+      stopRecognition(); spStopRecording();
+      const it = sp.list[sp.i];
+      $('sp-meta').textContent = sp.list.length ? `${sp.i + 1} / ${sp.list.length}` : '';
+      $('sp-text').textContent = it ? it.text : '練習できる文がありません。単語帳に例文を追加してください。';
+      $('sp-text').classList.toggle('blur', !!it && $('sp-hide').checked);
+      $('sp-ja').textContent = it ? it.sub : '';
+      $('sp-result').innerHTML = '';
+      if (sp.recUrl) { URL.revokeObjectURL(sp.recUrl); sp.recUrl = null; }
+      $('sp-mine').disabled = true;
+      ['sp-play', 'sp-slow', 'sp-mic', 'sp-rec'].forEach(id => $(id).disabled = !it);
+      $('sp-mic-note').textContent = SR ? 'マイクを押して英文を読み上げてください' : 'このブラウザは音声認識に対応していません（Chrome / Safari 推奨）。録音して聞き比べは使えます。';
+      if (!SR) $('sp-mic').disabled = true;
+    }
+    const spCur = () => sp.list[sp.i];
+    function spMic() {
+      if (recognizer) { stopRecognition(); return; }
+      const it = spCur(); if (!it) return;
+      $('sp-mic').classList.add('on');
+      $('sp-result').innerHTML = `<p class="heard">話してください…</p>`;
+      listen(it.text, {
+        onInterim: (t) => { $('sp-result').innerHTML = `<p class="heard">${esc(t)}</p>`; },
+        onDone: (best) => {
+          if (spCur() !== it) return;
+          if (!best) { $('sp-result').innerHTML = `<p class="heard">聞き取れませんでした。もう一度どうぞ</p>`; return; }
+          logSpoken(best.score);
+          $('sp-text').classList.remove('blur');
+          $('sp-result').innerHTML = `<div class="score ${best.score >= 1 ? 'result ok' : ''}">${Math.round(best.score * 100)}<span class="small">点</span></div>
+            <div class="words">${best.html}</div>
+            <p class="heard">聞き取り: “${esc(best.text)}”</p>
+            <p class="small muted">${best.score >= 1 ? '完璧です！ 次へ進みましょう。' : '赤い単語が伝わりにくかった部分です。🐢 でお手本を聞いてもう一度。'}</p>`;
+        },
+        onError: (msg) => { $('sp-result').innerHTML = `<p class="heard">${esc(msg)}</p>`; },
+      });
+    }
+    async function spToggleRec() {
+      if (sp.media && sp.media.state === 'recording') { sp.media.stop(); return; }
+      const it = spCur(); if (!it) return;
+      if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) { toast('このブラウザは録音に対応していません'); return; }
+      try {
+        stopRecognition();
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const chunks = [];
+        const rec = new MediaRecorder(stream);
+        rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+        rec.onstop = () => {
+          stream.getTracks().forEach(t => t.stop());
+          $('sp-rec').textContent = '⏺ 録音'; $('sp-rec').classList.remove('primary');
+          if (sp.media !== rec || spCur() !== it) return;
+          if (sp.recUrl) URL.revokeObjectURL(sp.recUrl);
+          sp.recUrl = URL.createObjectURL(new Blob(chunks, { type: rec.mimeType }));
+          $('sp-mine').disabled = false;
+          spPlayMine();
+        };
+        sp.media = rec; rec.start();
+        $('sp-rec').textContent = '⏹ 停止'; $('sp-rec').classList.add('primary');
+        if ($('sp-shadow').checked) speak(it.text);
+      } catch { toast('マイクを使えませんでした（許可を確認してください）'); }
+    }
+    function spStopRecording() {
+      if (sp.media && sp.media.state === 'recording') { const m = sp.media; sp.media = null; m.stop(); }
+    }
+    function spPlayMine() { if (sp.recUrl) new Audio(sp.recUrl).play(); }
 
     // ---------- Render: today ----------
     function renderToday() {
@@ -596,6 +854,12 @@
       $('bars').innerHTML = vals.map((v, i) => `<div class="${v ? '' : 'zero'}" style="height:${(v / max) * 100}%" title="${dayKey(today() - (29 - i) * DAY)}: ${v}"></div>`).join('');
       $('ax-l').textContent = dayKey(today() - 29 * DAY).slice(5);
 
+      let spN = 0, spS = 0;
+      for (let i = 0; i < 30; i++) { const l = state.log[dayKey(today() - i * DAY)]; spN += l?.spoken || 0; spS += l?.spokenScore || 0; }
+      $('speak-stats').innerHTML = spN
+        ? `<div class="row" style="justify-content:space-between"><span>発音チェック回数</span><b>${spN}回</b></div><div class="row" style="justify-content:space-between;margin-top:4px"><span>平均一致率</span><b>${Math.round((spS / spN) * 100)}%</b></div>`
+        : '<span class="muted">まだありません。「音読」タブやスピーキングモードで練習しましょう。</span>';
+
       const weak = state.cards.filter(c => c.againCount > 0).sort((a, b) => b.againCount - a.againCount).slice(0, 10);
       $('weak-list').innerHTML = weak.map(c =>
         `<li data-id="${c.id}"><div class="grow"><div class="en">${esc(c.en)}</div><div class="ja">${esc(c.ja)}</div></div><span class="badge due">${c.againCount}回</span></li>`
@@ -621,7 +885,8 @@
     function showTab(name) {
       document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
       document.querySelectorAll('main section').forEach(s => s.classList.toggle('active', s.id === `tab-${name}`));
-      ({ today: renderToday, words: renderWords, stats: renderStats, settings: renderSettings })[name]();
+      stopRecognition(); spStopRecording();
+      ({ today: renderToday, speak: () => { if (!sp.list.length) spReset(); else spRender(); }, words: renderWords, stats: renderStats, settings: renderSettings })[name]();
       window.scrollTo(0, 0);
     }
 
@@ -637,24 +902,43 @@
     $('quit-btn').addEventListener('click', () => endSession('中断しました（ここまでの結果は保存済み）'));
 
     $('flash').addEventListener('click', (e) => {
-      if (e.target.closest('[data-speak]')) speak(session.card.en);
+      if (e.target.closest('[data-speak]')) speak(target(session.card));
+      if (e.target.closest('[data-slow]')) speak(target(session.card), 0.6);
       if (e.target.closest('[data-speak-ex]')) speak(session.card.example);
     });
     $('actions').addEventListener('click', (e) => {
       if (e.target.closest('#reveal-btn')) reveal();
       if (e.target.closest('#check-btn')) checkAnswer(false);
-      if (e.target.closest('#giveup-btn')) checkAnswer(true);
+      if (e.target.closest('#giveup-btn')) session.mode === 'speak' ? reveal() : checkAnswer(true);
+      if (e.target.closest('#mic-btn')) toggleCardMic();
       const gb = e.target.closest('[data-grade]');
       if (gb) grade(Number(gb.dataset.grade));
     });
     document.addEventListener('keydown', (e) => {
-      if (!session || $('edit-dlg').open) return;
-      if (e.target.id === 'answer') { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); checkAnswer(false); } return; }
+      if (!session || $('edit-dlg').open || !$('tab-today').classList.contains('active')) return;
+      if (e.target.id === 'answer') {
+        if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); checkAnswer(false); }
+        else if (e.key === 'r' && e.ctrlKey) { e.preventDefault(); speak(target(session.card)); }
+        return;
+      }
       if (e.target.matches('input, textarea, select')) return;
-      if (!session.revealed && (e.key === ' ' || e.key === 'Enter') && !(session.mode === 'type' || session.mode === 'listen')) { e.preventDefault(); reveal(); }
+      if (!session.revealed && session.mode === 'speak' && SR && e.key === ' ') { e.preventDefault(); toggleCardMic(); }
+      else if (!session.revealed && (e.key === ' ' || e.key === 'Enter') && !TYPING.includes(session.mode)) { e.preventDefault(); reveal(); }
       else if (session.revealed && ['1', '2', '3', '4'].includes(e.key)) grade(Number(e.key) - 1);
-      else if (e.key === 'r' || e.key === 'R') speak(session.card.en);
+      else if (e.key === 'r' || e.key === 'R') speak(target(session.card));
     });
+
+    $('sp-src').addEventListener('change', spReset);
+    $('sp-hide').addEventListener('change', () => $('sp-text').classList.toggle('blur', $('sp-hide').checked && !!spCur()));
+    $('sp-text').addEventListener('click', () => $('sp-text').classList.remove('blur'));
+    $('sp-play').addEventListener('click', () => spCur() && speak(spCur().text));
+    $('sp-play2').addEventListener('click', () => spCur() && speak(spCur().text));
+    $('sp-slow').addEventListener('click', () => spCur() && speak(spCur().text, 0.6));
+    $('sp-mic').addEventListener('click', spMic);
+    $('sp-rec').addEventListener('click', spToggleRec);
+    $('sp-mine').addEventListener('click', spPlayMine);
+    $('sp-next').addEventListener('click', () => { if (sp.list.length) { sp.i = (sp.i + 1) % sp.list.length; spRender(); if ($('sp-hide').checked) speak(spCur().text); } });
+    $('sp-prev').addEventListener('click', () => { if (sp.list.length) { sp.i = (sp.i - 1 + sp.list.length) % sp.list.length; spRender(); } });
 
     $('search').addEventListener('input', renderWords);
     $('add-btn').addEventListener('click', () => openEdit(null));
