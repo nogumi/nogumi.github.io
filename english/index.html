@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>English Study</title>
+  <style>
+    :root {
+      --primary: #0066cc;
+      --ink: #1d1d1f;
+      --muted: #6e6e73;
+      --canvas: #ffffff;
+      --bg: #f5f5f7;
+      --hairline: #e0e0e0;
+      --again: #d70015;
+      --hard: #c25e00;
+      --good: #1a7f37;
+      --easy: #0066cc;
+      --radius: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --primary: #2997ff;
+        --ink: #f5f5f7;
+        --muted: #a1a1a6;
+        --canvas: #1c1c1e;
+        --bg: #000000;
+        --hairline: #38383a;
+        --again: #ff453a;
+        --hard: #ff9f0a;
+        --good: #30d158;
+        --easy: #2997ff;
+      }
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+      font-size: 16px; line-height: 1.5; color: var(--ink); background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, textarea, select { font: inherit; color: inherit; }
+    .wrap { max-width: 640px; margin: 0 auto; padding: 0 16px 96px; }
+
+    header {
+      position: sticky; top: 0; z-index: 10;
+      background: color-mix(in srgb, var(--bg) 85%, transparent);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--hairline);
+    }
+    header .wrap { display: flex; align-items: center; justify-content: space-between; height: 52px; padding-bottom: 0; }
+    header h1 { font-size: 18px; font-weight: 700; }
+    .streak { font-size: 14px; color: var(--muted); }
+
+    nav.tabs {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 10;
+      display: flex; justify-content: center; gap: 4px;
+      background: color-mix(in srgb, var(--canvas) 90%, transparent);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border-top: 1px solid var(--hairline);
+      padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    }
+    nav.tabs button {
+      flex: 1; max-width: 140px; border: 0; background: none; padding: 8px 4px; border-radius: 10px;
+      font-size: 13px; color: var(--muted); cursor: pointer;
+    }
+    nav.tabs button.active { color: var(--primary); font-weight: 600; background: color-mix(in srgb, var(--primary) 10%, transparent); }
+
+    section { display: none; padding-top: 20px; }
+    section.active { display: block; }
+    h2 { font-size: 22px; margin-bottom: 12px; }
+    h3 { font-size: 15px; color: var(--muted); font-weight: 600; margin: 24px 0 8px; }
+
+    .card {
+      background: var(--canvas); border-radius: var(--radius); padding: 20px;
+      border: 1px solid var(--hairline);
+    }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .grow { flex: 1; }
+    .muted { color: var(--muted); }
+    .small { font-size: 13px; }
+
+    .btn {
+      border: 1px solid var(--hairline); background: var(--canvas); border-radius: 10px;
+      padding: 10px 16px; cursor: pointer; font-weight: 600;
+    }
+    .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn.ghost { background: transparent; }
+    .btn.danger { color: var(--again); }
+    .btn:disabled { opacity: .45; cursor: default; }
+    .btn.block { width: 100%; }
+
+    input[type=text], input[type=number], textarea, select {
+      width: 100%; padding: 10px 12px; border-radius: 10px;
+      border: 1px solid var(--hairline); background: var(--canvas);
+    }
+    textarea { min-height: 90px; resize: vertical; }
+    label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
+
+    /* Summary tiles */
+    .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+    .tile { background: var(--canvas); border: 1px solid var(--hairline); border-radius: var(--radius); padding: 12px; text-align: center; }
+    .tile b { display: block; font-size: 24px; }
+    .tile span { font-size: 12px; color: var(--muted); }
+
+    /* Flashcard */
+    .flash { min-height: 260px; display: flex; flex-direction: column; justify-content: center; text-align: center; gap: 10px; }
+    .flash .front { font-size: 32px; font-weight: 700; word-break: break-word; }
+    .flash .back { font-size: 20px; }
+    .flash .example { font-size: 15px; color: var(--muted); font-style: italic; }
+    .flash .note { font-size: 14px; color: var(--muted); }
+    .speak { border: 0; background: none; cursor: pointer; font-size: 20px; padding: 4px 8px; }
+    .progress { height: 4px; background: var(--hairline); border-radius: 2px; overflow: hidden; margin-bottom: 12px; }
+    .progress > div { height: 100%; background: var(--primary); width: 0; transition: width .2s; }
+    .grades { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+    .grades button { border: 0; border-radius: 10px; padding: 10px 4px; color: #fff; font-weight: 600; cursor: pointer; line-height: 1.25; }
+    .grades button small { display: block; font-weight: 400; font-size: 11px; opacity: .9; }
+    .g0 { background: var(--again); } .g1 { background: var(--hard); } .g2 { background: var(--good); } .g3 { background: var(--easy); }
+    .result.ok { color: var(--good); font-weight: 700; }
+    .result.ng { color: var(--again); font-weight: 700; }
+    .diff ins { color: var(--good); text-decoration: none; }
+    .diff del { color: var(--again); }
+    .kbd { font-size: 12px; color: var(--muted); text-align: center; margin-top: 10px; }
+
+    /* Word list */
+    .list { list-style: none; background: var(--canvas); border: 1px solid var(--hairline); border-radius: var(--radius); overflow: hidden; }
+    .list li { padding: 12px 16px; border-bottom: 1px solid var(--hairline); display: flex; gap: 12px; align-items: center; cursor: pointer; }
+    .list li:last-child { border-bottom: 0; }
+    .list .en { font-weight: 600; }
+    .list .ja { color: var(--muted); font-size: 14px; }
+    .badge { font-size: 11px; padding: 2px 8px; border-radius: 99px; background: var(--bg); color: var(--muted); white-space: nowrap; }
+    .badge.new { color: var(--primary); }
+    .badge.due { color: var(--again); }
+
+    /* Stats */
+    .bars { display: flex; align-items: flex-end; gap: 3px; height: 120px; }
+    .bars div { flex: 1; background: var(--primary); border-radius: 3px 3px 0 0; min-height: 2px; opacity: .85; }
+    .bars div.zero { background: var(--hairline); }
+    .axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+    dialog { border: 0; border-radius: var(--radius); padding: 20px; width: min(520px, calc(100% - 32px)); background: var(--canvas); color: var(--ink); margin: auto; }
+    dialog::backdrop { background: rgba(0,0,0,.4); }
+    .toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 16px; border-radius: 99px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+  <header><div class="wrap"><h1>English Study</h1><span class="streak" id="streak"></span></div></header>
+
+  <main class="wrap">
+    <!-- 今日 -->
+    <section id="tab-today" class="active">
+      <div class="tiles">
+        <div class="tile"><b id="t-due">0</b><span>復習</span></div>
+        <div class="tile"><b id="t-new">0</b><span>新規</span></div>
+        <div class="tile"><b id="t-done">0</b><span>今日やった数</span></div>
+      </div>
+
+      <div id="start-panel" class="card">
+        <label for="mode">学習モード</label>
+        <select id="mode">
+          <option value="en-ja">英語 → 意味を思い出す（フラッシュカード）</option>
+          <option value="ja-en">日本語 → 英語を思い出す（フラッシュカード）</option>
+          <option value="type">日本語 → 英語をタイピング（スペル練習）</option>
+          <option value="listen">音声を聞いて英語をタイピング（ディクテーション）</option>
+        </select>
+        <div style="height:14px"></div>
+        <button class="btn primary block" id="start-btn">学習をはじめる</button>
+        <p class="small muted" id="start-hint" style="margin-top:10px"></p>
+      </div>
+
+      <div id="study-panel" hidden>
+        <div class="progress"><div id="prog"></div></div>
+        <div class="card flash" id="flash"></div>
+        <div id="actions"></div>
+        <p class="kbd" id="kbd-hint"></p>
+        <div style="text-align:center;margin-top:12px"><button class="btn ghost small" id="quit-btn">中断する</button></div>
+      </div>
+    </section>
+
+    <!-- 単語帳 -->
+    <section id="tab-words">
+      <div class="row" style="margin-bottom:12px">
+        <input type="text" id="search" class="grow" placeholder="検索（英語・日本語・タグ）" style="width:auto" />
+        <button class="btn primary" id="add-btn">＋ 追加</button>
+      </div>
+      <p class="small muted" id="word-count" style="margin-bottom:8px"></p>
+      <ul class="list" id="word-list"></ul>
+
+      <h3>まとめて追加</h3>
+      <div class="card">
+        <p class="small muted">1行に1語。<code>英語[タブ or ,]意味[タブ or ,]例文</code> の形式で貼り付け（Excel / スプレッドシートからコピーでOK）。</p>
+        <textarea id="bulk" placeholder="resilient	回復力のある	She is resilient in the face of failure.&#10;take for granted, 当然と思う"></textarea>
+        <div class="row" style="margin-top:8px">
+          <input type="text" id="bulk-tag" placeholder="タグ（任意）" class="grow" style="width:auto" />
+          <button class="btn" id="bulk-btn">取り込む</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 記録 -->
+    <section id="tab-stats">
+      <div class="tiles">
+        <div class="tile"><b id="s-total">0</b><span>登録語数</span></div>
+        <div class="tile"><b id="s-mature">0</b><span>定着（21日+）</span></div>
+        <div class="tile"><b id="s-acc">-</b><span>直近30日 正答率</span></div>
+      </div>
+      <h3>直近30日の学習数</h3>
+      <div class="card">
+        <div class="bars" id="bars"></div>
+        <div class="axis"><span id="ax-l"></span><span>今日</span></div>
+      </div>
+      <h3>苦手な単語（「もう一度」が多い順）</h3>
+      <ul class="list" id="weak-list"></ul>
+      <h3>これから7日の復習予定</h3>
+      <div class="card" id="forecast"></div>
+    </section>
+
+    <!-- 設定 -->
+    <section id="tab-settings">
+      <div class="card">
+        <label for="new-limit">1日に学ぶ新しい単語の上限</label>
+        <input type="number" id="new-limit" min="0" max="200" />
+        <label for="voice">読み上げの音声</label>
+        <select id="voice"></select>
+        <label for="rate">読み上げ速度</label>
+        <input type="number" id="rate" min="0.5" max="1.5" step="0.1" />
+        <label style="display:flex;gap:8px;align-items:center;color:var(--ink);font-size:15px;margin-top:14px">
+          <input type="checkbox" id="autospeak" /> カード表示時に自動で読み上げる
+        </label>
+      </div>
+
+      <h3>バックアップ</h3>
+      <div class="card">
+        <p class="small muted" style="margin-bottom:10px">データはこのブラウザ内（localStorage）だけに保存されています。端末を変えるときやブラウザのデータを消す前に書き出してください。</p>
+        <div class="row">
+          <button class="btn" id="export-btn">JSONを書き出す</button>
+          <button class="btn" id="import-btn">JSONを読み込む</button>
+          <input type="file" id="import-file" accept="application/json" hidden />
+        </div>
+      </div>
+
+      <h3>リセット</h3>
+      <div class="card">
+        <div class="row">
+          <button class="btn danger" id="reset-progress">学習履歴だけリセット</button>
+          <button class="btn danger" id="reset-all">すべて削除</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabs">
+    <button data-tab="today" class="active">今日</button>
+    <button data-tab="words">単語帳</button>
+    <button data-tab="stats">記録</button>
+    <button data-tab="settings">設定</button>
+  </nav>
+
+  <dialog id="edit-dlg">
+    <form method="dialog" id="edit-form">
+      <h2 id="edit-title">単語を追加</h2>
+      <label for="f-en">英語（単語・フレーズ）</label>
+      <input type="text" id="f-en" required autocomplete="off" autocapitalize="off" />
+      <label for="f-ja">意味</label>
+      <input type="text" id="f-ja" required autocomplete="off" />
+      <label for="f-ex">例文（任意）</label>
+      <input type="text" id="f-ex" autocomplete="off" />
+      <label for="f-note">メモ（任意・品詞や類義語など）</label>
+      <input type="text" id="f-note" autocomplete="off" />
+      <label for="f-tags">タグ（任意・スペース区切り）</label>
+      <input type="text" id="f-tags" autocomplete="off" />
+      <p class="small muted" id="f-info" style="margin-top:10px"></p>
+      <div class="row" style="margin-top:16px">
+        <button type="button" class="btn danger" id="f-delete">削除</button>
+        <span class="grow"></span>
+        <button type="button" class="btn" id="f-cancel">キャンセル</button>
+        <button type="submit" class="btn primary" value="save">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+  (() => {
+    'use strict';
+    const KEY = 'english-study-v1';
+    const DAY = 86400000;
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+    // ---------- Starter deck ----------
+    const STARTER = [
+      ['take for granted', '当然と思う', "Don't take your health for granted."],
+      ['come up with', '（案を）思いつく', 'She came up with a great idea.'],
+      ['figure out', '理解する・解決する', "I can't figure out how this works."],
+      ['get used to', '〜に慣れる', "You'll get used to it soon."],
+      ['look forward to', '〜を楽しみにする', 'I look forward to hearing from you.'],
+      ['run out of', '〜を使い果たす', 'We ran out of milk.'],
+      ['put off', '延期する', "Don't put off until tomorrow what you can do today."],
+      ['bring up', '（話題を）持ち出す', 'He brought up an interesting point.'],
+      ['deal with', '対処する', 'I have to deal with a lot of emails.'],
+      ['end up', '結局〜になる', 'We ended up staying home.'],
+      ['resilient', '回復力のある・へこたれない', 'Children are often remarkably resilient.'],
+      ['reluctant', '気が進まない', 'He was reluctant to admit his mistake.'],
+      ['substantial', 'かなりの・相当な', 'There was a substantial increase in sales.'],
+      ['inevitable', '避けられない', 'Change is inevitable.'],
+      ['convenient', '便利な・都合のよい', 'Is 3 p.m. convenient for you?'],
+      ['appreciate', '感謝する・正しく理解する', 'I really appreciate your help.'],
+      ['postpone', '延期する', 'The meeting was postponed until Friday.'],
+      ['priority', '優先事項', 'Safety is our top priority.'],
+      ['efficient', '効率的な', 'This is a more efficient way to work.'],
+      ['eventually', '最終的に・やがて', 'Eventually, he found a job he loved.'],
+      ['meanwhile', 'その間に・一方で', 'Meanwhile, the others were waiting outside.'],
+      ['nevertheless', 'それにもかかわらず', 'It was raining; nevertheless, we went out.'],
+      ['as far as I know', '私の知る限り', "As far as I know, he's still in Tokyo."],
+      ['it depends', '場合による', '"Will you come?" "It depends."'],
+      ['by the way', 'ところで', 'By the way, did you see the news?'],
+      ['make sense', '筋が通る・理解できる', "That doesn't make sense to me."],
+      ['on the other hand', '一方で', 'On the other hand, it is expensive.'],
+      ['in charge of', '〜を担当して', 'Who is in charge of this project?'],
+      ['keep in mind', '心に留めておく', 'Keep in mind that the shop closes early.'],
+      ['for the time being', '当面は', "I'll stay here for the time being."],
+    ];
+
+    // ---------- State ----------
+    const today = () => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); };
+    const dayKey = (t = Date.now()) => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+    const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+    function newCard(en, ja, example = '', note = '', tags = []) {
+      return { id: uid(), en: en.trim(), ja: ja.trim(), example: example.trim(), note: note.trim(), tags,
+               created: Date.now(), reps: 0, interval: 0, ease: 2.5, due: null, lapses: 0, againCount: 0, last: null };
+    }
+    function defaultState() {
+      return {
+        cards: STARTER.map(([en, ja, ex]) => newCard(en, ja, ex, '', ['starter'])),
+        log: {},  // { 'YYYY-MM-DD': { reviews, correct, newSeen } }
+        settings: { newLimit: 10, voice: '', rate: 0.9, autospeak: true, mode: 'en-ja' },
+      };
+    }
+    let state;
+    function load() {
+      try {
+        const raw = localStorage.getItem(KEY);
+        state = raw ? JSON.parse(raw) : defaultState();
+        state.settings = { ...defaultState().settings, ...(state.settings || {}) };
+        state.log = state.log || {};
+      } catch { state = defaultState(); }
+    }
+    function save() {
+      try { localStorage.setItem(KEY, JSON.stringify(state)); }
+      catch { toast('保存できませんでした（ストレージが使えない状態です）'); }
+    }
+    function logToday() {
+      const k = dayKey();
+      return state.log[k] || (state.log[k] = { reviews: 0, correct: 0, newSeen: 0 });
+    }
+
+    // ---------- Scheduling (SM-2 簡易版) ----------
+    const isNew = (c) => c.due == null;
+    const isDue = (c) => !isNew(c) && c.due <= Date.now();
+
+    function nextInterval(c, g) {
+      if (g === 0) return 0;
+      if (g === 1) return Math.max(1, Math.round((c.interval || 1) * 1.2));
+      if (g === 2) return c.reps === 0 ? 1 : c.reps === 1 ? 3 : Math.max(c.interval + 1, Math.round(c.interval * c.ease));
+      return c.reps === 0 ? 4 : Math.max(c.interval + 2, Math.round(c.interval * c.ease * 1.3));
+    }
+    function fmtIvl(d) {
+      if (d === 0) return 'すぐ';
+      if (d < 30) return `${d}日`;
+      if (d < 365) return `${Math.round(d / 30)}ヶ月`;
+      return `${(d / 365).toFixed(1)}年`;
+    }
+    function applyGrade(c, g) {
+      const wasNew = isNew(c);
+      const ivl = nextInterval(c, g);
+      if (g === 0) { c.reps = 0; c.lapses += wasNew ? 0 : 1; c.againCount++; c.ease = Math.max(1.3, c.ease - 0.2); }
+      else {
+        c.reps++;
+        if (g === 1) c.ease = Math.max(1.3, c.ease - 0.15);
+        if (g === 3) c.ease += 0.15;
+      }
+      c.interval = ivl;
+      c.due = g === 0 ? Date.now() : today() + ivl * DAY;
+      c.last = Date.now();
+      const l = logToday();
+      l.reviews++; if (g > 0) l.correct++; if (wasNew) l.newSeen++;
+      save();
+    }
+
+    // ---------- Session ----------
+    let session = null;
+    function buildQueue() {
+      const due = state.cards.filter(isDue).sort((a, b) => a.due - b.due);
+      const remainingNew = Math.max(0, state.settings.newLimit - (logToday().newSeen || 0));
+      const fresh = state.cards.filter(isNew).sort((a, b) => a.created - b.created).slice(0, remainingNew);
+      // 新規を復習の間に混ぜる
+      const q = [...due];
+      fresh.forEach((c, i) => q.splice(Math.min(q.length, (i + 1) * 3), 0, c));
+      return q;
+    }
+
+    function startSession() {
+      const queue = buildQueue();
+      if (!queue.length) { toast('今日の学習はすべて完了です 🎉'); return; }
+      state.settings.mode = $('mode').value; save();
+      session = { mode: state.settings.mode, queue, total: queue.length, done: 0, revealed: false, card: null };
+      $('start-panel').hidden = true; $('study-panel').hidden = false;
+      nextCard();
+    }
+    function endSession(msg) {
+      session = null;
+      $('start-panel').hidden = false; $('study-panel').hidden = true;
+      if (msg) toast(msg);
+      renderToday();
+    }
+    function nextCard() {
+      if (!session.queue.length) return endSession('お疲れさまでした！今日の分は完了です 🎉');
+      session.card = session.queue.shift();
+      session.revealed = false;
+      session.typed = null;
+      $('prog').style.width = `${(session.done / session.total) * 100}%`;
+      renderCard();
+      const m = session.mode;
+      if (state.settings.autospeak && (m === 'en-ja' || m === 'listen')) speak(session.card.en);
+    }
+
+    function renderCard() {
+      const c = session.card, m = session.mode, f = $('flash'), a = $('actions');
+      const tag = isNew(c) ? '<span class="badge new">NEW</span>' : '';
+      const speakBtn = `<button class="speak" data-speak aria-label="読み上げ">🔊</button>`;
+      let front;
+      if (m === 'en-ja') front = `<div class="front">${esc(c.en)} ${speakBtn}</div>`;
+      else if (m === 'listen') front = `<div class="muted">音声を聞いて英語を入力 ${speakBtn}</div>`;
+      else front = `<div class="front" style="font-size:26px">${esc(c.ja)}</div>`;
+
+      let html = `<div>${tag}</div>${front}`;
+      if (session.revealed) {
+        html += `<hr style="border:0;border-top:1px solid var(--hairline);margin:6px 0">`;
+        if (m === 'en-ja') html += `<div class="back">${esc(c.ja)}</div>`;
+        else html += `<div class="front" style="font-size:28px">${esc(c.en)} ${speakBtn}</div>${m === 'listen' ? `<div class="back">${esc(c.ja)}</div>` : ''}`;
+        if (session.typed != null) html += session.typed.html;
+        if (c.example) html += `<div class="example">${esc(c.example)} <button class="speak" data-speak-ex aria-label="例文を読み上げ" style="font-size:15px">🔊</button></div>`;
+        if (c.note) html += `<div class="note">${esc(c.note)}</div>`;
+      }
+      f.innerHTML = html;
+
+      const typing = m === 'type' || m === 'listen';
+      if (!session.revealed) {
+        if (typing) {
+          a.innerHTML = `<div class="row" style="margin-top:12px"><input type="text" id="answer" class="grow" style="width:auto" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="英語で入力"><button class="btn primary" id="check-btn">答え合わせ</button></div>
+            <div style="text-align:center;margin-top:8px"><button class="btn ghost small" id="giveup-btn">わからない</button></div>`;
+          setTimeout(() => $('answer') && $('answer').focus(), 0);
+          $('kbd-hint').textContent = 'Enter で答え合わせ';
+        } else {
+          a.innerHTML = `<button class="btn primary block" id="reveal-btn" style="margin-top:12px">答えを見る</button>`;
+          $('kbd-hint').textContent = 'Space で答えを見る';
+        }
+      } else {
+        const sug = session.typed ? session.typed.suggest : null;
+        const labels = ['もう一度', '難しい', '正解', '簡単'];
+        a.innerHTML = `<div class="grades">${labels.map((l, g) =>
+          `<button class="g${g}" data-grade="${g}"${sug != null && sug === g ? ' style="outline:3px solid var(--ink);outline-offset:2px"' : ''}>${l}<small>${fmtIvl(nextInterval(c, g))}</small></button>`).join('')}</div>`;
+        $('kbd-hint').textContent = '1〜4 キーで評価';
+      }
+    }
+
+    function normalize(s) {
+      return s.toLowerCase().replace(/[’‘]/g, "'").replace(/[.,!?;:"]/g, '').replace(/\s+/g, ' ').trim();
+    }
+    // 文字単位の差分（LCS）で間違い箇所を表示
+    function diffHtml(answer, correct) {
+      const a = answer, b = correct, n = a.length, m = b.length;
+      const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+      for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--)
+        dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+      let i = 0, j = 0, out = '';
+      while (i < n || j < m) {
+        if (i < n && j < m && a[i] === b[j]) { out += esc(a[i]); i++; j++; }
+        else if (j < m && (i >= n || dp[i][j + 1] >= dp[i + 1][j])) { out += `<ins>${esc(b[j])}</ins>`; j++; }
+        else { out += `<del>${esc(a[i])}</del>`; i++; }
+      }
+      return out;
+    }
+    function checkAnswer(giveUp) {
+      const c = session.card;
+      const input = giveUp ? '' : ($('answer')?.value || '');
+      const ok = !giveUp && normalize(input) === normalize(c.en);
+      let html;
+      if (ok) html = `<div class="result ok">正解！</div>`;
+      else if (giveUp || !input.trim()) html = `<div class="result ng">答えを確認しましょう</div>`;
+      else html = `<div class="result ng">おしい…</div><div class="diff small">あなたの答え: ${diffHtml(normalize(input), normalize(c.en))}</div>`;
+      session.typed = { html, suggest: ok ? 2 : 0 };
+      session.revealed = true;
+      renderCard();
+      speak(c.en);
+    }
+    function reveal() {
+      session.revealed = true; renderCard();
+      if (session.mode === 'ja-en' && state.settings.autospeak) speak(session.card.en);
+    }
+    function grade(g) {
+      const c = session.card;
+      applyGrade(c, g);
+      if (g === 0) session.queue.splice(Math.min(session.queue.length, 3), 0, c); // 少し後にもう一度
+      else session.done++;
+      if (g === 0) session.total = Math.max(session.total, session.done + session.queue.length);
+      nextCard();
+    }
+
+    // ---------- Speech ----------
+    let voices = [];
+    function loadVoices() {
+      if (!('speechSynthesis' in window)) return;
+      voices = speechSynthesis.getVoices().filter(v => /^en[-_]/i.test(v.lang));
+      const sel = $('voice');
+      sel.innerHTML = `<option value="">自動（英語）</option>` + voices.map(v => `<option value="${esc(v.name)}">${esc(v.name)} (${esc(v.lang)})</option>`).join('');
+      sel.value = state.settings.voice;
+    }
+    function speak(text) {
+      if (!('speechSynthesis' in window) || !text) return;
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'en-US';
+      u.rate = Number(state.settings.rate) || 0.9;
+      const v = voices.find(v => v.name === state.settings.voice);
+      if (v) { u.voice = v; u.lang = v.lang; }
+      speechSynthesis.speak(u);
+    }
+
+    // ---------- Render: today ----------
+    function renderToday() {
+      const due = state.cards.filter(isDue).length;
+      const l = logToday();
+      const newAvail = Math.min(state.cards.filter(isNew).length, Math.max(0, state.settings.newLimit - l.newSeen));
+      $('t-due').textContent = due; $('t-new').textContent = newAvail; $('t-done').textContent = l.reviews;
+      $('start-btn').disabled = due + newAvail === 0;
+      $('start-hint').textContent = due + newAvail === 0
+        ? (state.cards.length ? '今日の学習はすべて完了しています。明日また来てください。' : '単語帳に単語を追加しましょう。')
+        : `約 ${Math.ceil((due + newAvail) * 0.25)} 分で終わる量です。`;
+      $('mode').value = state.settings.mode;
+      $('streak').textContent = `🔥 ${streak()}日連続`;
+    }
+    function streak() {
+      let n = 0, t = today();
+      if (!(state.log[dayKey(t)]?.reviews)) t -= DAY; // 今日まだなら昨日から数える
+      while (state.log[dayKey(t)]?.reviews) { n++; t -= DAY; }
+      return n;
+    }
+
+    // ---------- Render: words ----------
+    function statusBadge(c) {
+      if (isNew(c)) return '<span class="badge new">未学習</span>';
+      if (isDue(c)) return '<span class="badge due">復習待ち</span>';
+      const days = Math.round((c.due - today()) / DAY);
+      return `<span class="badge">${days}日後</span>`;
+    }
+    function renderWords() {
+      const q = $('search').value.trim().toLowerCase();
+      const list = state.cards.filter(c => !q || [c.en, c.ja, c.example, c.note, ...(c.tags || [])].join(' ').toLowerCase().includes(q))
+        .sort((a, b) => b.created - a.created);
+      $('word-count').textContent = `${list.length} / ${state.cards.length} 語`;
+      $('word-list').innerHTML = list.map(c =>
+        `<li data-id="${c.id}"><div class="grow"><div class="en">${esc(c.en)}</div><div class="ja">${esc(c.ja)}</div></div>${statusBadge(c)}</li>`
+      ).join('') || '<li class="muted">該当する単語はありません</li>';
+    }
+
+    let editing = null;
+    function openEdit(card) {
+      editing = card;
+      $('edit-title').textContent = card ? '単語を編集' : '単語を追加';
+      $('f-en').value = card?.en || ''; $('f-ja').value = card?.ja || '';
+      $('f-ex').value = card?.example || ''; $('f-note').value = card?.note || '';
+      $('f-tags').value = (card?.tags || []).join(' ');
+      $('f-delete').hidden = !card;
+      $('f-info').textContent = card && !isNew(card)
+        ? `間隔 ${card.interval}日 / もう一度 ${card.againCount}回 / 最終学習 ${dayKey(card.last)}` : '';
+      $('edit-dlg').showModal();
+      $('f-en').focus();
+    }
+
+    // ---------- Render: stats ----------
+    function renderStats() {
+      $('s-total').textContent = state.cards.length;
+      $('s-mature').textContent = state.cards.filter(c => c.interval >= 21).length;
+      let rv = 0, ok = 0; const vals = [];
+      for (let i = 29; i >= 0; i--) {
+        const l = state.log[dayKey(today() - i * DAY)];
+        vals.push(l?.reviews || 0); rv += l?.reviews || 0; ok += l?.correct || 0;
+      }
+      $('s-acc').textContent = rv ? `${Math.round((ok / rv) * 100)}%` : '-';
+      const max = Math.max(1, ...vals);
+      $('bars').innerHTML = vals.map((v, i) => `<div class="${v ? '' : 'zero'}" style="height:${(v / max) * 100}%" title="${dayKey(today() - (29 - i) * DAY)}: ${v}"></div>`).join('');
+      $('ax-l').textContent = dayKey(today() - 29 * DAY).slice(5);
+
+      const weak = state.cards.filter(c => c.againCount > 0).sort((a, b) => b.againCount - a.againCount).slice(0, 10);
+      $('weak-list').innerHTML = weak.map(c =>
+        `<li data-id="${c.id}"><div class="grow"><div class="en">${esc(c.en)}</div><div class="ja">${esc(c.ja)}</div></div><span class="badge due">${c.againCount}回</span></li>`
+      ).join('') || '<li class="muted">まだありません</li>';
+
+      const days = ['今日', '明日', '2日後', '3日後', '4日後', '5日後', '6日後'];
+      $('forecast').innerHTML = days.map((d, i) => {
+        const end = today() + (i + 1) * DAY;
+        const start = i === 0 ? -Infinity : today() + i * DAY;
+        const n = state.cards.filter(c => !isNew(c) && c.due >= start && c.due < end).length;
+        return `<div class="row" style="justify-content:space-between;padding:4px 0"><span>${d}</span><b>${n}</b></div>`;
+      }).join('');
+    }
+
+    function renderSettings() {
+      $('new-limit').value = state.settings.newLimit;
+      $('rate').value = state.settings.rate;
+      $('autospeak').checked = state.settings.autospeak;
+      loadVoices();
+    }
+
+    // ---------- Tabs ----------
+    function showTab(name) {
+      document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+      document.querySelectorAll('main section').forEach(s => s.classList.toggle('active', s.id === `tab-${name}`));
+      ({ today: renderToday, words: renderWords, stats: renderStats, settings: renderSettings })[name]();
+      window.scrollTo(0, 0);
+    }
+
+    let toastTimer;
+    function toast(msg) {
+      const t = $('toast'); t.textContent = msg; t.classList.add('show');
+      clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+    }
+
+    // ---------- Events ----------
+    document.querySelectorAll('nav.tabs button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+    $('start-btn').addEventListener('click', startSession);
+    $('quit-btn').addEventListener('click', () => endSession('中断しました（ここまでの結果は保存済み）'));
+
+    $('flash').addEventListener('click', (e) => {
+      if (e.target.closest('[data-speak]')) speak(session.card.en);
+      if (e.target.closest('[data-speak-ex]')) speak(session.card.example);
+    });
+    $('actions').addEventListener('click', (e) => {
+      if (e.target.closest('#reveal-btn')) reveal();
+      if (e.target.closest('#check-btn')) checkAnswer(false);
+      if (e.target.closest('#giveup-btn')) checkAnswer(true);
+      const gb = e.target.closest('[data-grade]');
+      if (gb) grade(Number(gb.dataset.grade));
+    });
+    document.addEventListener('keydown', (e) => {
+      if (!session || $('edit-dlg').open) return;
+      if (e.target.id === 'answer') { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); checkAnswer(false); } return; }
+      if (e.target.matches('input, textarea, select')) return;
+      if (!session.revealed && (e.key === ' ' || e.key === 'Enter') && !(session.mode === 'type' || session.mode === 'listen')) { e.preventDefault(); reveal(); }
+      else if (session.revealed && ['1', '2', '3', '4'].includes(e.key)) grade(Number(e.key) - 1);
+      else if (e.key === 'r' || e.key === 'R') speak(session.card.en);
+    });
+
+    $('search').addEventListener('input', renderWords);
+    $('add-btn').addEventListener('click', () => openEdit(null));
+    const onListClick = (e) => {
+      const li = e.target.closest('li[data-id]'); if (!li) return;
+      const c = state.cards.find(c => c.id === li.dataset.id); if (c) openEdit(c);
+    };
+    $('word-list').addEventListener('click', onListClick);
+    $('weak-list').addEventListener('click', onListClick);
+
+    $('edit-form').addEventListener('submit', (e) => {
+      const en = $('f-en').value.trim(), ja = $('f-ja').value.trim();
+      if (!en || !ja) { e.preventDefault(); return; }
+      const tags = $('f-tags').value.split(/\s+/).filter(Boolean);
+      if (editing) Object.assign(editing, { en, ja, example: $('f-ex').value.trim(), note: $('f-note').value.trim(), tags });
+      else {
+        if (state.cards.some(c => c.en.toLowerCase() === en.toLowerCase()) && !confirm(`「${en}」はすでに登録されています。追加しますか？`)) { e.preventDefault(); return; }
+        state.cards.push(newCard(en, ja, $('f-ex').value, $('f-note').value, tags));
+      }
+      save(); renderWords(); toast(editing ? '保存しました' : '追加しました');
+    });
+    $('f-cancel').addEventListener('click', () => $('edit-dlg').close());
+    $('f-delete').addEventListener('click', () => {
+      if (!editing || !confirm(`「${editing.en}」を削除しますか？`)) return;
+      state.cards = state.cards.filter(c => c !== editing);
+      save(); $('edit-dlg').close(); renderWords(); renderStats(); toast('削除しました');
+    });
+
+    $('bulk-btn').addEventListener('click', () => {
+      const tag = $('bulk-tag').value.trim();
+      const existing = new Set(state.cards.map(c => c.en.toLowerCase()));
+      let added = 0, skipped = 0;
+      $('bulk').value.split('\n').forEach(line => {
+        if (!line.trim()) return;
+        const parts = line.split(line.includes('\t') ? '\t' : ',').map(s => s.trim());
+        const [en, ja] = parts, ex = parts.slice(2).join(', ');
+        if (!en || !ja || existing.has(en.toLowerCase())) { skipped++; return; }
+        state.cards.push(newCard(en, ja, ex, '', tag ? [tag] : []));
+        existing.add(en.toLowerCase()); added++;
+      });
+      save(); $('bulk').value = ''; renderWords();
+      toast(`${added}語を追加${skipped ? `（${skipped}行スキップ）` : ''}`);
+    });
+
+    $('new-limit').addEventListener('change', (e) => { state.settings.newLimit = Math.max(0, Number(e.target.value) || 0); save(); });
+    $('rate').addEventListener('change', (e) => { state.settings.rate = Math.min(1.5, Math.max(0.5, Number(e.target.value) || 0.9)); save(); });
+    $('voice').addEventListener('change', (e) => { state.settings.voice = e.target.value; save(); speak('Hello, this is a voice test.'); });
+    $('autospeak').addEventListener('change', (e) => { state.settings.autospeak = e.target.checked; save(); });
+
+    $('export-btn').addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = `english-study-${dayKey()}.json`; a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    });
+    $('import-btn').addEventListener('click', () => $('import-file').click());
+    $('import-file').addEventListener('change', async (e) => {
+      const file = e.target.files[0]; if (!file) return;
+      try {
+        const data = JSON.parse(await file.text());
+        if (!Array.isArray(data.cards)) throw new Error();
+        if (!confirm(`${data.cards.length}語のデータで現在のデータを置き換えます。よろしいですか？`)) return;
+        state = data; state.settings = { ...defaultState().settings, ...(data.settings || {}) }; state.log = data.log || {};
+        save(); renderSettings(); toast('読み込みました');
+      } catch { toast('ファイルを読み込めませんでした'); }
+      e.target.value = '';
+    });
+    $('reset-progress').addEventListener('click', () => {
+      if (!confirm('単語は残したまま、学習履歴と記録をリセットします。よろしいですか？')) return;
+      state.cards.forEach(c => Object.assign(c, { reps: 0, interval: 0, ease: 2.5, due: null, lapses: 0, againCount: 0, last: null }));
+      state.log = {}; save(); toast('リセットしました');
+    });
+    $('reset-all').addEventListener('click', () => {
+      if (!confirm('すべての単語と記録を削除します。元に戻せません。よろしいですか？')) return;
+      state = { ...defaultState(), cards: [] }; save(); toast('削除しました');
+    });
+
+    if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = loadVoices;
+
+    load();
+    loadVoices();
+    renderToday();
+  })();
+  </script>
+</body>
+</html>
